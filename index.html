@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<title>VaultBit — Crypto Wallet Simulator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.294.0/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs/qrcode.min.js"></script>
+<link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+<div id="shell">
+
+  <!-- ============================ AUTH ============================ -->
+  <section id="auth">
+    <div class="auth-brand">
+      <div class="logo-tile"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 6l8 13 8-13h-4.4L12 13.4 8.4 6z" fill="currentColor"/><circle cx="12" cy="18.6" r="1.4" fill="currentColor"/></svg></div>
+      <div><h1>VaultBit</h1><p>Simulated crypto wallet</p></div>
+    </div>
+
+    <div id="auth-cards" class="mode-login">
+      <!-- LOGIN -->
+      <form id="login-form" class="auth-card" novalidate>
+        <h2>Welcome back</h2>
+        <p class="auth-sub">Sign in to your VaultBit wallet.</p>
+        <div class="field"><label>Mobile or Email</label>
+          <div class="control"><input id="li-identifier" class="input" placeholder="98765 43210 or you@mail.com" autocomplete="username"></div>
+        </div>
+        <div class="field"><label>Password</label>
+          <div class="control">
+            <input id="li-password" type="password" class="input pad" placeholder="••••••••" autocomplete="current-password">
+            <button type="button" class="eye" data-eye="li-password"><i data-lucide="eye"></i></button>
+          </div>
+        </div>
+        <div class="auth-row"><button type="button" class="link" id="li-forgot">Forgot password?</button></div>
+        <button class="btn btn-primary btn-block" id="li-btn" type="submit">Sign in</button>
+        <p class="auth-alt">New to VaultBit? <button type="button" class="link strong" id="go-signup">Create account</button></p>
+      </form>
+
+      <!-- SIGNUP -->
+      <form id="signup-form" class="auth-card" novalidate>
+        <h2>Create your wallet</h2>
+        <p class="auth-sub">Takes less than a minute.</p>
+        <div class="field"><label>Username</label><input id="su-username" class="input" placeholder="udit"></div>
+        <div class="field"><label>Mobile number</label><input id="su-mobile" class="input" type="tel" placeholder="98765 43210"></div>
+        <div class="field"><label>Email <span class="opt">(optional)</span></label><input id="su-email" class="input" type="email" placeholder="you@mail.com"></div>
+        <div class="field"><label>Password</label>
+          <div class="control"><input id="su-password" type="password" class="input pad" placeholder="Min. 6 characters">
+          <button type="button" class="eye" data-eye="su-password"><i data-lucide="eye"></i></button></div>
+        </div>
+        <div class="field"><label>Confirm password</label><input id="su-confirm" type="password" class="input" placeholder="Repeat password"></div>
+        <label class="check"><input type="checkbox" id="su-terms"><span>I agree to the Terms and understand this is a <b>simulator</b> — no real funds are involved.</span></label>
+        <button class="btn btn-primary btn-block" id="su-btn" type="submit">Create account</button>
+        <p class="auth-alt">Already have an account? <button type="button" class="link strong" id="go-login">Sign in</button></p>
+      </form>
+    </div>
+
+    <p class="sim-note"><i data-lucide="shield-alert"></i> Demo simulator — no real crypto, UPI or bank transfers ever occur.</p>
+  </section>
+
+  <!-- ============================ MAIN APP ============================ -->
+  <div id="app" hidden>
+    <main id="views">
+
+      <!-- HOME -->
+      <section class="view is-active" id="view-home">
+        <header class="vhead home-head">
+          <button class="avatar" id="home-avatar" aria-label="Profile">–</button>
+          <div class="greet"><span id="greet-line">Good morning</span><strong id="greet-name">—</strong></div>
+          <button class="iconbtn" id="bell-btn" aria-label="Notifications"><i data-lucide="bell"></i><span class="nbadge" id="notif-badge" hidden></span></button>
+        </header>
+
+        <div class="balance-card">
+          <span class="bc-label">Total Portfolio</span>
+          <div class="bc-amount" id="bc-amount" data-v="0">₹0.00</div>
+          <div class="bc-change" id="bc-change"></div>
+          <div class="chart-box"><canvas id="portfolio-chart"></canvas></div>
+          <span class="bc-live" id="bc-live">Live · CoinGecko</span>
+        </div>
+
+        <div class="qa">
+          <button id="qa-send"><span class="qi t-brand"><i data-lucide="arrow-up-right"></i></span>Send</button>
+          <button id="qa-receive"><span class="qi t-violet"><i data-lucide="arrow-down-left"></i></span>Receive</button>
+          <button id="qa-withdraw"><span class="qi t-amber"><i data-lucide="arrow-down-to-line"></i></span>Withdraw</button>
+          <button id="qa-funds"><span class="qi t-neutral"><i data-lucide="plus"></i></span>Add Funds</button>
+        </div>
+
+        <div id="announce-wrap" hidden></div>
+
+        <div class="sec-head"><h3>Your assets</h3><button class="link" id="assets-all">View all</button></div>
+        <div class="stack" id="home-assets"></div>
+
+        <div class="sec-head"><h3>Recent activity</h3><button class="link" id="activity-all">View all</button></div>
+        <div class="stack" id="home-activity"></div>
+      </section>
+
+      <!-- MARKETS -->
+      <section class="view" id="view-markets">
+        <header class="vhead"><h2>Markets</h2><span class="live-pill"><span class="dot"></span>Live</span></header>
+        <div class="searchbox"><i data-lucide="search"></i><input id="market-search" class="input" placeholder="Search coins"></div>
+        <div class="chips" id="market-chips">
+          <button class="chip active" data-f="all">All</button>
+          <button class="chip" data-f="trending">Trending</button>
+          <button class="chip" data-f="gainers">Gainers</button>
+          <button class="chip" data-f="losers">Losers</button>
+          <button class="chip" data-f="watch">Watchlist</button>
+        </div>
+        <p class="mover-line" id="mkt-mover"></p>
+        <div class="stack" id="market-list"></div>
+      </section>
+
+      <!-- WALLET -->
+      <section class="view" id="view-wallet">
+        <header class="vhead"><h2>Wallet</h2><button class="iconbtn" id="wal-recv" aria-label="Receive"><i data-lucide="qr-code"></i></button></header>
+        <div class="card wal-sum">
+          <span class="muted-label">Estimated total value</span>
+          <div class="wal-total" id="wal-total" data-v="0">₹0.00</div>
+          <div id="wal-change"></div>
+        </div>
+        <div class="stack" id="wal-list"></div>
+        <button class="btn btn-ghost btn-block" id="wal-withdraw"><i data-lucide="landmark"></i> Withdraw to UPI / Bank account</button>
+      </section>
+
+      <!-- ACTIVITY -->
+      <section class="view" id="view-activity">
+        <header class="vhead"><h2>Activity</h2></header>
+        <div class="chips" id="act-chips">
+          <button class="chip active" data-f="all">All</button>
+          <button class="chip" data-f="sent">Sent</button>
+          <button class="chip" data-f="received">Received</button>
+          <button class="chip" data-f="withdrawal">Withdrawals</button>
+          <button class="chip" data-f="credits">Credits</button>
+        </div>
+        <div class="stack" id="act-list"></div>
+      </section>
+
+      <!-- PROFILE -->
+      <section class="view" id="view-profile">
+        <header class="vhead"><h2>Profile</h2></header>
+        <div class="card profile-card">
+          <div class="avatar big" id="pf-avatar">–</div>
+          <div><b id="pf-username">—</b><span id="pf-email" class="muted">—</span></div>
+          <span class="role-chip" id="pf-role">USER</span>
+        </div>
+        <div class="card info-list">
+          <div class="info-row"><span><i data-lucide="smartphone"></i>Mobile</span><b id="pf-mobile">—</b></div>
+          <div class="info-row"><span><i data-lucide="wallet"></i>Wallet address</span><b class="mono trunc" id="pf-address">—</b><button class="iconbtn sm" data-copy-target="pf-address"><i data-lucide="copy"></i></button></div>
+          <div class="info-row"><span><i data-lucide="clock"></i>Member since</span><b id="pf-created">—</b></div>
+        </div>
+        <h4 class="group-label">Settings</h4>
+        <div class="card set-list">
+          <div class="set-row"><span><i data-lucide="moon"></i>Dark mode</span><label class="switch"><input type="checkbox" id="set-theme"><i></i></label></div>
+          <div class="set-row"><span><i data-lucide="bell"></i>Notifications</span><label class="switch"><input type="checkbox" id="set-notif" checked><i></i></label></div>
+          <button class="set-row" id="set-security"><span><i data-lucide="shield-check"></i>Security</span><i data-lucide="chevron-right" class="chev"></i></button>
+          <div class="set-row"><span><i data-lucide="globe"></i>Language</span>
+            <select class="input slim" id="lang-select"><option>English</option><option>हिन्दी</option></select>
+          </div>
+          <div class="set-row"><span><i data-lucide="info"></i>Version</span><b class="muted">VaultBit Sim 1.0</b></div>
+        </div>
+        <button class="btn btn-ghost btn-block danger" id="logout-btn"><i data-lucide="log-out"></i> Log out</button>
+      </section>
+    </main>
+
+    <nav id="bottomnav">
+      <button class="bn-item active" data-view="home"><i data-lucide="home"></i><span>Home</span></button>
+      <button class="bn-item" data-view="markets"><i data-lucide="candlestick-chart"></i><span>Markets</span></button>
+      <button class="bn-item" data-view="wallet"><i data-lucide="wallet"></i><span>Wallet</span></button>
+      <button class="bn-item" data-view="activity"><i data-lucide="history"></i><span>Activity</span></button>
+      <button class="bn-item" data-view="profile"><i data-lucide="user"></i><span>Profile</span></button>
+    </nav>
+  </div>
+
+  <!-- ============================ MODALS ============================ -->
+
+  <!-- SEND -->
+  <div class="modal" id="modal-send" hidden>
+    <div class="m-back" data-close></div>
+    <div class="sheet">
+      <div class="grab"></div>
+      <div class="sheet-head"><h3>Send crypto</h3><button class="iconbtn" data-close><i data-lucide="x"></i></button></div>
+      <form id="send-form" novalidate>
+        <div class="field"><label>Asset</label><select id="sd-coin" class="input select"></select></div>
+        <div class="field"><label>Receiver wallet address</label>
+          <input id="sd-address" class="input mono" placeholder="0x…">
+          <p class="ferr" id="sd-addr-err" hidden>Wallet address not found.</p>
+        </div>
+        <div class="field"><label>Amount</label>
+          <div class="control"><input id="sd-amount" type="number" step="any" min="0" class="input pad" placeholder="0.00">
+          <button type="button" class="max-btn" id="sd-max">MAX</button></div>
+        </div>
+        <div class="kv-card">
+          <div class="kv"><span>Available</span><b id="sd-avail">—</b></div>
+          <div class="kv"><span>Current INR value</span><b id="sd-inr">—</b></div>
+          <div class="kv"><span>Est. network fee</span><b id="sd-fee">—</b></div>
+          <div class="kv total"><span>Total</span><b id="sd-total">—</b></div>
+        </div>
+        <div class="field"><label>Note <span class="opt">(optional)</span></label><input id="sd-note" class="input" placeholder="What's it for?"></div>
+        <button class="btn btn-primary btn-block" id="sd-submit" type="submit">Send now</button>
+        <p class="sim-note small"><i data-lucide="shield-alert"></i> Simulated transfer inside VaultBit only — nothing touches a real blockchain.</p>
+      </form>
+    </div>
+  </div>
+
+  <!-- RECEIVE -->
+  <div class="modal" id="modal-receive" hidden>
+    <div class="m-back" data-close></div>
+    <div class="sheet">
+      <div class="grab"></div>
+      <div class="sheet-head"><h3>Receive crypto</h3><button class="iconbtn" data-close><i data-lucide="x"></i></button></div>
+      <div class="field"><label>Asset</label><select id="rc-coin" class="input select"></select></div>
+      <div class="qr-wrap"><div id="rc-qr"></div><span class="qr-coin" id="rc-qr-coin">BTC</span></div>
+      <div class="addr-box"><code class="mono" id="rc-address">—</code><button class="iconbtn" data-copy-target="rc-address"><i data-lucide="copy"></i></button></div>
+      <button class="btn btn-ghost btn-block" id="rc-share"><i data-lucide="share-2"></i> Share address</button>
+      <p class="sim-note small"><i data-lucide="shield-alert"></i> Simulated address — only other VaultBit simulator users can send to it.</p>
+    </div>
+  </div>
+
+  <!-- ADD FUNDS -->
+  <div class="modal" id="modal-funds" hidden>
+    <div class="m-back" data-close></div>
+    <div class="sheet">
+      <div class="grab"></div>
+      <div class="sheet-head"><h3>Add funds (INR)</h3><button class="iconbtn" data-close><i data-lucide="x"></i></button></div>
+      <div class="fd-chips">
+        <button class="chip" data-v="500">₹500</button><button class="chip" data-v="1000">₹1,000</button>
+        <button class="chip" data-v="5000">₹5,000</button><button class="chip" data-v="10000">₹10,000</button>
+      </div>
+      <div class="field"><label>Amount (INR)</label><input id="fd-amount" type="number" step="any" min="1" class="input" placeholder="0"></div>
+      <button class="btn btn-primary btn-block" id="fd-submit" type="button">Simulate deposit</button>
+      <p class="sim-note small"><i data-lucide="shield-alert"></i> Simulated instant deposit — no real money moves.</p>
+    </div>
+  </div>
+
+  <!-- WITHDRAW OVERLAY -->
+  <div class="page-overlay" id="wr-overlay" hidden>
+    <header class="ov-head">
+      <button class="iconbtn" id="wr-back"><i data-lucide="arrow-left"></i></button>
+      <h3>Withdraw</h3><span class="ov-spacer"></span>
+    </header>
+    <div class="ov-body">
+      <div class="seg" id="wr-tabs">
+        <button class="active" data-t="new">New withdrawal</button>
+        <button data-t="history">History</button>
+      </div>
+
+      <form id="wr-form" novalidate>
+        <div class="field"><label>Asset</label><select id="wr-coin" class="input select"></select></div>
+        <div class="field"><label>Amount</label>
+          <div class="control"><input id="wr-amount" type="number" step="any" min="0" class="input pad" placeholder="0.00">
+          <button type="button" class="max-btn" id="wr-max">MAX</button></div>
+        </div>
+        <div class="kv-card">
+          <div class="kv"><span>Available</span><b id="wr-avail">—</b></div>
+          <div class="kv"><span>Current price</span><b id="wr-price">—</b></div>
+          <div class="kv total"><span>Estimated INR value</span><b id="wr-est">—</b></div>
+        </div>
+        <div class="field"><label>Withdrawal method</label>
+          <div class="method-grid">
+            <button type="button" class="method active" data-m="UPI"><i data-lucide="smartphone"></i><span>UPI</span><small>Simulated payout</small></button>
+            <button type="button" class="method" data-m="BANK"><i data-lucide="landmark"></i><span>Bank transfer</span><small>3 business days</small></button>
+          </div>
+        </div>
+        <div id="wr-upi-fields">
+          <div class="field"><label>UPI ID</label><input id="wr-upi" class="input" placeholder="username@upi"></div>
+        </div>
+        <div id="wr-bank-fields" hidden>
+          <div class="field"><label>Bank name</label><input id="wr-bank" class="input" placeholder="HDFC Bank"></div>
+          <div class="field"><label>Account holder name</label><input id="wr-acname" class="input" placeholder="Full name"></div>
+          <div class="field"><label>Account number</label><input id="wr-acno" class="input" placeholder="9–18 digits"></div>
+          <div class="field"><label>IFSC code</label><input id="wr-ifsc" class="input upper" placeholder="HDFC0001234"></div>
+        </div>
+        <button class="btn btn-primary btn-block" id="wr-submit" type="submit">Submit withdrawal</button>
+        <p class="sim-note small"><i data-lucide="shield-alert"></i> Crypto is deducted immediately. Simulated payout — no real UPI/bank transfer occurs.</p>
+      </form>
+
+      <div id="wr-success" hidden>
+        <svg class="sc-check" viewBox="0 0 56 56"><circle cx="28" cy="28" r="26" fill="none" stroke-width="2.5"/><path fill="none" stroke-width="3.2" d="M15 29l9 9 17-18"/></svg>
+        <h3 class="sc-title">Withdrawal Request Submitted</h3>
+        <p class="sc-msg">Your withdrawal request has been successfully submitted. Your crypto assets have been deducted from your wallet balance.</p>
+        <div class="kv-card">
+          <div class="kv"><span>Amount</span><b id="wr-s-amount">—</b></div>
+          <div class="kv"><span>Method</span><b id="wr-s-method">—</b></div>
+          <div class="kv total"><span>Estimated arrival</span><b id="wr-s-arrival">—</b></div>
+        </div>
+        <div class="tl" id="wr-timeline"></div>
+        <button class="btn btn-ghost btn-block" id="wr-view-hist" type="button">View withdrawal status</button>
+        <button class="btn btn-primary btn-block" id="wr-done" type="button">Done</button>
+      </div>
+
+      <div id="wr-history" class="stack" hidden></div>
+    </div>
+  </div>
+
+  <!-- NOTIFICATIONS -->
+  <div class="modal" id="modal-notif" hidden>
+    <div class="m-back" data-close></div>
+    <div class="sheet">
+      <div class="grab"></div>
+      <div class="sheet-head"><h3>Notifications</h3><button class="link" id="notif-mark">Mark all read</button></div>
+      <div class="stack" id="notif-list"></div>
+    </div>
+  </div>
+
+  <!-- COIN DETAIL -->
+  <div class="modal" id="modal-coin" hidden>
+    <div class="m-back" data-close></div>
+    <div class="sheet"><div class="grab"></div><div id="coin-body"></div></div>
+  </div>
+
+  <!-- TRANSACTION / WITHDRAWAL DETAIL -->
+  <div class="modal" id="modal-tx" hidden>
+    <div class="m-back" data-close></div>
+    <div class="sheet"><div class="grab"></div><div id="tx-body"></div></div>
+  </div>
+
+  <!-- SECURITY -->
+  <div class="modal" id="modal-security" hidden>
+    <div class="m-back" data-close></div>
+    <div class="sheet"><div class="grab"></div><div id="sec-body"></div></div>
+  </div>
+
+  <!-- GENERIC CONFIRM -->
+  <div class="modal" id="modal-confirm" hidden>
+    <div class="m-back"></div>
+    <div class="sheet slim">
+      <div class="grab"></div>
+      <h3 id="cf-title">Are you sure?</h3>
+      <p class="muted" id="cf-msg"></p>
+      <div class="btn-row">
+        <button class="btn btn-ghost" id="cf-no">Cancel</button>
+        <button class="btn btn-danger" id="cf-yes">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GENERIC SUCCESS -->
+  <div class="modal" id="modal-success" hidden>
+    <div class="m-back"></div>
+    <div class="sheet slim center">
+      <div class="grab"></div>
+      <svg class="sc-check" viewBox="0 0 56 56"><circle cx="28" cy="28" r="26" fill="none" stroke-width="2.5"/><path fill="none" stroke-width="3.2" d="M15 29l9 9 17-18"/></svg>
+      <h3 class="sc-title" id="sc-title">Done</h3>
+      <p class="sc-msg" id="sc-msg"></p>
+      <button class="btn btn-primary btn-block" id="sc-btn" data-close>Great</button>
+    </div>
+  </div>
+
+  <!-- FORGOT PASSWORD -->
+  <div class="modal" id="modal-forgot" hidden>
+    <div class="m-back" data-close></div>
+    <div class="sheet slim">
+      <div class="grab"></div>
+      <h3>Reset password</h3>
+      <p class="muted">This is a self-contained simulator, so automated password reset isn't available. Ask the platform administrator to reset it from the database, or create a new account.</p>
+      <button class="btn btn-primary btn-block" data-close>Got it</button>
+    </div>
+  </div>
+
+  <div id="toast-root"></div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
