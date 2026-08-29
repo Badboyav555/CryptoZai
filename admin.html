@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>VaultBit — Admin Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.294.0/dist/umd/lucide.min.js"></script>
+<link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+<!-- ADMIN LOGIN -->
+<section id="ad-login" class="adm-auth">
+  <form id="ad-login-form" class="ad-auth-card" novalidate>
+    <div class="auth-brand">
+      <div class="logo-tile"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 6l8 13 8-13h-4.4L12 13.4 8.4 6z" fill="currentColor"/><circle cx="12" cy="18.6" r="1.4" fill="currentColor"/></svg></div>
+      <div><h1>VaultBit Admin</h1><p>Platform console</p></div>
+    </div>
+    <div class="field"><label>Mobile or Email</label><input id="ad-id" class="input" placeholder="admin@mail.com"></div>
+    <div class="field"><label>Password</label>
+      <div class="control"><input id="ad-pw" type="password" class="input pad" placeholder="••••••••">
+      <button type="button" class="eye" data-eye="ad-pw"><i data-lucide="eye"></i></button></div>
+    </div>
+    <button class="btn btn-primary btn-block" id="ad-btn" type="submit">Sign in to console</button>
+    <p class="sim-note"><i data-lucide="shield-alert"></i> Access requires role = admin in the users table. Simulator only — no real funds.</p>
+    <p class="auth-alt"><a class="link" href="index.html">← Back to user app</a></p>
+  </form>
+</section>
+
+<!-- UNAUTHORIZED -->
+<section id="ad-denied" class="ad-denied" hidden>
+  <div>
+    <div class="lock-ring"><i data-lucide="lock"></i></div>
+    <h1>Unauthorized Access</h1>
+    <p class="muted">Your account does not have admin privileges.<br>This console is restricted to role = admin.</p>
+    <p style="margin-top:18px"><a class="link" href="index.html">← Back to user app</a></p>
+  </div>
+</section>
+
+<!-- ADMIN APP -->
+<div id="ad-app" class="adm" hidden>
+  <aside class="aside">
+    <div class="auth-brand">
+      <div class="logo-tile"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M4 6l8 13 8-13h-4.4L12 13.4 8.4 6z" fill="currentColor"/><circle cx="12" cy="18.6" r="1.4" fill="currentColor"/></svg></div>
+      <div><h1>VaultBit</h1><p>Admin console</p></div>
+    </div>
+    <nav>
+      <button class="anav active" data-sec="dashboard"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></button>
+      <button class="anav" data-sec="users"><i data-lucide="users"></i><span>Users</span></button>
+      <button class="anav" data-sec="wallets"><i data-lucide="wallet"></i><span>Wallets</span></button>
+      <button class="anav" data-sec="withdrawals"><i data-lucide="arrow-down-to-line"></i><span>Withdrawals</span></button>
+      <button class="anav" data-sec="transactions"><i data-lucide="history"></i><span>Transactions</span></button>
+      <button class="anav" data-sec="notifications"><i data-lucide="bell"></i><span>Notifications</span></button>
+      <button class="anav" data-sec="announcements"><i data-lucide="megaphone"></i><span>Announcements</span></button>
+      <button class="anav" data-sec="settings"><i data-lucide="settings"></i><span>Settings</span></button>
+    </nav>
+    <div class="aside-foot">
+      <div class="avatar" id="ad-avatar">A</div>
+      <div><b id="ad-name">Admin</b><small id="ad-role">Administrator</small></div>
+      <button class="iconbtn" id="ad-logout" title="Log out"><i data-lucide="log-out"></i></button>
+    </div>
+  </aside>
+
+  <main class="amain">
+    <header class="amain-head">
+      <h2 id="sec-title">Dashboard</h2>
+      <div class="head-right">
+        <span class="conn-dot" id="conn-dot"></span><span id="conn-label">Connecting…</span>
+        <button class="iconbtn" id="ad-theme"><i data-lucide="moon"></i></button>
+      </div>
+    </header>
+
+    <!-- DASHBOARD -->
+    <section class="asec is-active" id="sec-dashboard">
+      <div class="stat-grid" id="stat-grid"></div>
+      <div class="charts">
+        <div class="chart-card"><h4>User growth — last 14 days</h4><div class="cbox"><canvas id="ch-users"></canvas></div></div>
+        <div class="chart-card"><h4>Transaction activity — last 14 days</h4><div class="cbox"><canvas id="ch-tx"></canvas></div></div>
+        <div class="chart-card"><h4>Withdrawal requests — last 14 days</h4><div class="cbox"><canvas id="ch-wd"></canvas></div></div>
+      </div>
+    </section>
+
+    <!-- USERS -->
+    <section class="asec" id="sec-users">
+      <div class="toolbar">
+        <input id="us-search" class="input" placeholder="Search username, email, mobile…">
+        <select id="us-filter" class="input">
+          <option value="all">All users</option><option value="active">Active only</option>
+          <option value="disabled">Disabled</option><option value="admins">Admins</option>
+        </select>
+      </div>
+      <div class="atable-wrap"><table class="atable" id="us-table"></table></div>
+    </section>
+
+    <!-- WALLETS / BALANCE MANAGEMENT -->
+    <section class="asec" id="sec-wallets">
+      <div class="panel">
+        <h3>Balance management — credit or debit simulated funds</h3>
+        <div class="bm-grid">
+          <div class="field"><label>User</label><select id="bm-user" class="input"></select></div>
+          <div class="field"><label>Asset</label><select id="bm-asset" class="input"></select></div>
+          <div class="field"><label>Amount</label><input id="bm-amount" type="number" step="any" min="0" class="input" placeholder="0.00"></div>
+          <div class="field"><label>Action</label>
+            <div class="seg" style="margin:0"><button type="button" class="active" data-a="credit">Credit</button>
+            <button type="button" data-a="debit">Debit</button></div>
+          </div>
+        </div>
+        <div class="field"><label>Note <span class="opt">(optional, shown to user)</span></label><input id="bm-note" class="input" placeholder="Reason for adjustment"></div>
+        <div class="bm-preview" id="bm-preview">Select a user and asset to preview.</div>
+        <button class="btn btn-primary" id="bm-exec">Apply adjustment</button>
+      </div>
+      <div class="atable-wrap"><table class="atable" id="wal-table"></table></div>
+    </section>
+
+    <!-- WITHDRAWALS -->
+    <section class="asec" id="sec-withdrawals">
+      <div class="toolbar">
+        <input id="wd-search" class="input" placeholder="Search user…">
+        <select id="wd-filter" class="input"><option value="all">All statuses</option>
+          <option>Processing</option><option>Completed</option><option>Failed</option><option>Rejected</option></select>
+        <select id="wd-method" class="input"><option value="all">All methods</option><option>UPI</option><option>BANK</option></select>
+      </div>
+      <div class="atable-wrap"><table class="atable" id="wd-table"></table></div>
+    </section>
+
+    <!-- TRANSACTIONS -->
+    <section class="asec" id="sec-transactions">
+      <div class="toolbar">
+        <input id="tx-search" class="input mono" placeholder="Search by TX hash…">
+        <select id="tx-coin" class="input"><option value="all">All coins</option>
+          <option>BTC</option><option>ETH</option><option>USDT</option><option>SOL</option>
+          <option>XRP</option><option>DOGE</option><option>BNB</option><option>INR</option></select>
+        <select id="tx-status" class="input"><option value="all">All statuses</option>
+          <option>Processing</option><option>Completed</option><option>Failed</option><option>Rejected</option></select>
+        <select id="tx-type" class="input"><option value="all">All types</option>
+          <option>sent</option><option>received</option><option>withdrawal</option>
+          <option>admin_credit</option><option>admin_debit</option><option>deposit</option></select>
+      </div>
+      <div class="atable-wrap"><table class="atable" id="tx-table"></table></div>
+    </section>
+
+    <!-- NOTIFICATIONS -->
+    <section class="asec" id="sec-notifications">
+      <div class="panel">
+        <h3>Send notification</h3>
+        <div class="bm-grid">
+          <div class="field"><label>Recipient</label><select id="nf-target" class="input"><option value="all">All users</option></select></div>
+          <div class="field"><label>Title</label><input id="nf-title" class="input" placeholder="e.g. Scheduled maintenance"></div>
+        </div>
+        <div class="field"><label>Message</label><textarea id="nf-message" class="input" placeholder="Write your message…"></textarea></div>
+        <button class="btn btn-primary" id="nf-send">Send notification</button>
+      </div>
+      <h4 class="group-label">Recently sent</h4>
+      <div class="atable-wrap"><table class="atable" id="nf-table"></table></div>
+    </section>
+
+    <!-- ANNOUNCEMENTS -->
+    <section class="asec" id="sec-announcements">
+      <div class="panel">
+        <h3>Publish announcement</h3>
+        <div class="bm-grid">
+          <div class="field"><label>Title</label><input id="an-title" class="input" placeholder="Announcement title"></div>
+          <div class="field"><label>Type</label><select id="an-type" class="input">
+            <option>General</option><option>Market</option><option>Maintenance</option><option>Security</option></select></div>
+        </div>
+        <div class="field"><label>Message</label><textarea id="an-message" class="input" placeholder="Shown on every user's home screen."></textarea></div>
+        <button class="btn btn-primary" id="an-publish">Publish announcement</button>
+      </div>
+      <h4 class="group-label">Published</h4>
+      <div class="atable-wrap"><table class="atable" id="an-table"></table></div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="asec" id="sec-settings">
+      <div class="panel">
+        <h3>Connection</h3>
+        <div class="wd-detail-grid">
+          <div><span>Supabase URL</span><b id="st-url" class="mono">—</b></div>
+          <div><span>Anon key</span><b class="mono" id="st-key">—</b></div>
+          <div><span>Status</span><b id="st-status">—</b></div>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>Data tools</h3>
+        <p class="muted" style="font-size:13px;margin-bottom:12px">Refresh the mirrored market_prices table from CoinGecko, or broadcast a maintenance notice to all users.</p>
+        <div class="am-actions">
+          <button class="btn btn-ghost" id="st-prices"><i data-lucide="refresh-cw"></i> Refresh market prices</button>
+          <button class="btn btn-ghost" id="st-maint"><i data-lucide="wrench"></i> Broadcast maintenance notice</button>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>Session</h3>
+        <div class="wd-detail-grid">
+          <div><span>Signed in as</span><b id="st-admin">—</b></div>
+          <div><span>Role</span><b>admin</b></div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- generic confirm + detail modals -->
+<div class="modal" id="am-confirm" hidden>
+  <div class="m-back"></div>
+  <div class="sheet slim">
+    <div class="grab"></div>
+    <h3 id="ac-title">Are you sure?</h3>
+    <p class="muted" id="ac-msg" style="margin-top:8px"></p>
+    <div class="btn-row"><button class="btn btn-ghost" id="ac-no">Cancel</button>
+    <button class="btn btn-danger" id="ac-yes">Confirm</button></div>
+  </div>
+</div>
+<div class="modal" id="am-modal" hidden>
+  <div class="m-back" data-close></div>
+  <div class="sheet"><div class="grab"></div><div id="am-body"></div></div>
+</div>
+
+<div id="toast-root"></div>
+<script src="admin.js"></script>
+</body>
+</html>
